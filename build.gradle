@@ -13,8 +13,6 @@ repositories {
 }
 
 dependencies {
-    // HAPI HL7
-    implementation group: 'ca.uhn.hapi', name: 'hapi-base', version: '2.6.0'
     // Apache HttpClient
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.4'
     // Log4j para logging
@@ -23,6 +21,9 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.1'
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+
 }
 
 test {
