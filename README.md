@@ -38,6 +38,20 @@ Ao rodar o `.jar` pela primeira vez:
 
 ---
 
+🔄 Ciclo de vida do arquivo .hl7
+
+    📨 Cai em entrada/
+
+    📥 É movido para processamento/
+
+    🔄 É lido, transformado em JSON e enviado via HTTP
+
+    ✅ Se sucesso → é deletado
+
+    ❌ Se erro → é movido para erro/
+
+---
+
 ### 📦 Onde o `.env` é salvo?
 
 O programa tenta carregar o `.env` dos seguintes locais, **nesta ordem**:
