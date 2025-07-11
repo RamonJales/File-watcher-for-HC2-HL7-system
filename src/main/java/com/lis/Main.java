@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import org.json.JSONObject;
 
 public class Main {
     private static final Logger logger = LogManager.getLogger(Main.class);
@@ -17,6 +18,7 @@ public class Main {
     private static Dotenv dotenv;
 
     public static void main(String[] args) {
+        logger.info("Aplicação LIS File Watcher iniciada.");
         // 1. Tentar carregar .env do diretório do JAR
         try {
             dotenv = Dotenv.configure()
@@ -125,13 +127,11 @@ public class Main {
                     .replace("\n", "\r")
                     .replace("\r\r", "\r");
 
-            String jsonPayload = String.format(
-                    "{\"hl7\": \"%s\", \"empresaId\": %d}",
-                    content.replace("\"", "\\\""),
-                    empresaId
-            );
+            JSONObject json = new JSONObject();
+            json.put("hl7", content);
+            json.put("empresaId", empresaId);
 
-            HttpSender.sendToServer(serverUrl, jsonPayload);
+            HttpSender.sendToServer(serverUrl, json.toString());
             logger.info("Arquivo enviado: {}", filePath);
         } catch (IOException e) {
             logger.error("Erro ao ler o arquivo: {}", filePath, e);
