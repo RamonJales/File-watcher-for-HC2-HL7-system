@@ -30,7 +30,7 @@ public class Main {
             // 2. Se não encontrou, tenta no home do usuário
             if (dotenv.get("HL7_WATCH_FOLDER") == null || dotenv.get("EMPRESA_ID") == null) {
                 dotenv = Dotenv.configure()
-                        .directory(System.getProperty("user.home"))
+                        .directory(System.getProperty("user.home") + File.separator + ".lis-watcher")
                         .filename(ENV_FILENAME)
                         .ignoreIfMissing()
                         .load();
@@ -72,7 +72,7 @@ public class Main {
             }
 
             // Salva .env no user.home
-            saveEnvToFile(System.getProperty("user.home") + File.separator + ENV_FILENAME,
+            saveEnvToFile(System.getProperty("user.home") + File.separator + ".lis-watcher" + File.separator + ENV_FILENAME,
                     watchPath, empresaIdStr, serverUrl);
         }
 
@@ -110,11 +110,20 @@ public class Main {
     }
 
     private static void saveEnvToFile(String filePath, String folder, String empresaId, String url) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
-            writer.println("HL7_WATCH_FOLDER=" + folder);
-            writer.println("EMPRESA_ID=" + empresaId);
-            writer.println("HL7_ENDPOINT_URL=" + url);
-            logger.info(".env salvo em {}", filePath);
+        try {
+            File envFile = new File(filePath);
+            File parentDir = envFile.getParentFile();
+
+            if (!parentDir.exists()) {
+                parentDir.mkdirs(); // cria ~/.lis-watcher se não existir
+            }
+
+            try (PrintWriter writer = new PrintWriter(new FileWriter(envFile))) {
+                writer.println("HL7_WATCH_FOLDER=" + folder);
+                writer.println("EMPRESA_ID=" + empresaId);
+                writer.println("HL7_ENDPOINT_URL=" + url);
+                logger.info(".env salvo em {}", filePath);
+            }
         } catch (IOException e) {
             logger.error("Erro ao salvar .env: {}", e.getMessage());
         }
