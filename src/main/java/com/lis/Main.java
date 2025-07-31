@@ -44,7 +44,7 @@ public class Main {
         String serverUrl = dotenv.get("HL7_ENDPOINT_URL");
 
         // Se faltar algum valor, pede via Swing e salva no .env
-        if (watchPath == null || empresaIdStr == null || serverUrl == null) {
+        if (watchPath == null || empresaIdStr == null || serverUrl == null || Strings.isBlank(watchPath) || Strings.isBlank(empresaIdStr) || Strings.isBlank(serverUrl)) {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Selecione a pasta a ser monitorada");
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -96,7 +96,7 @@ public class Main {
                         }
 
                         logger.info("Novo arquivo detectado: {}", filePath);
-                        processFile(filePath, serverUrl, empresaId);
+                        processFile(filePath, serverUrl, empresaId, watchPath);
                     }
                 }
 
@@ -129,23 +129,55 @@ public class Main {
         }
     }
 
-    private static void processFile(Path filePath, String serverUrl, Long empresaId) {
+    private static void processFile(Path filePath, String serverUrl, Long empresaId, String watchPath) {
+        Path baseDir = filePath.resolve(watchPath);
+        Path processingDir = baseDir.resolve("processamento");
+        Path errorDir = baseDir.resolve("erro");
+
         try {
-            byte[] bytes = Files.readAllBytes(filePath);
+            // Garante que as pastas de processamento e erro existem
+            Files.createDirectories(processingDir);
+            Files.createDirectories(errorDir);
+
+            // Move o arquivo para a pasta "processamento"
+            Path processingFile = processingDir.resolve(filePath.getFileName());
+            Files.move(filePath, processingFile, StandardCopyOption.REPLACE_EXISTING);
+
+            // Lê e prepara o conteúdo do HL7
+            byte[] bytes = Files.readAllBytes(processingFile);
             String content = new String(bytes, StandardCharsets.UTF_8)
                     .replace("\n", "\r")
                     .replace("\r\r", "\r");
 
+            // Monta o JSON
             JSONObject json = new JSONObject();
             json.put("hl7", content);
             json.put("empresaId", empresaId);
 
+            // Envia a requisição HTTP
             HttpSender.sendToServer(serverUrl, json.toString());
-            logger.info("Arquivo enviado: {}", filePath);
-        } catch (IOException e) {
-            logger.error("Erro ao ler o arquivo: {}", filePath, e);
+
+            // Sucesso: remove o arquivo da pasta de processamento
+            Files.deleteIfExists(processingFile);
+            logger.info("Arquivo processado e removido com sucesso: {}", processingFile);
+
         } catch (Exception e) {
-            logger.error("Erro ao enviar o arquivo: {}", filePath, e);
+            logger.error("Erro ao processar o arquivo: {}", filePath, e);
+
+            // Em caso de erro: move o arquivo original para a pasta de erro
+            try {
+                Path errorFile = errorDir.resolve(filePath.getFileName());
+                // Se já tiver sido movido para 'processamento', pega de lá
+                Path currentFile = processingDir.resolve(filePath.getFileName());
+                if (Files.exists(currentFile)) {
+                    Files.move(currentFile, errorFile, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.move(filePath, errorFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+                logger.warn("Arquivo movido para a pasta de erro: {}", errorFile);
+            } catch (IOException ex) {
+                logger.error("Falha ao mover o arquivo para a pasta de erro", ex);
+            }
         }
     }
 }
