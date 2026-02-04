@@ -1,10 +1,15 @@
 package com.lis.util;
 
 
+import org.apache.logging.log4j.core.util.internal.HttpInputStreamUtil;
+
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+import static org.apache.logging.log4j.core.util.internal.HttpInputStreamUtil.readStream;
 
 public class HttpSender {
     public static void sendToServer(String serverUrl, String jsonPayload) throws Exception {
@@ -20,7 +25,11 @@ public class HttpSender {
 
         int responseCode = connection.getResponseCode();
         if (responseCode != 200 && responseCode != 201) {
-            throw new RuntimeException("Erro ao enviar requisição. Código HTTP: " + responseCode);
+            String error = Arrays.toString(HttpInputStreamUtil.readStream(connection.getErrorStream()));
+            throw new RuntimeException(
+                    "Erro ao enviar requisição. Código HTTP: " + responseCode +
+                            " | Resposta: " + error
+            );
         }
     }
 }
